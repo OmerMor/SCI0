@@ -1,0 +1,96 @@
+NULL     equ 0
+
+;;;
+;;; the following should be in sync
+;;; NLSYMS.H
+;;;
+MINNLTOKEN equ 300
+;NLRP    equ 301
+;NLLP    equ 302
+NLVERB  equ 303
+NLNOUN  equ 304
+NLART   equ 305
+NLADJ   equ 306
+NLPREP  equ 307
+NLPRON  equ 308
+NLCONJ  equ 309 
+NLAUXV  equ 310
+NLADV   equ 311
+NLASS   equ 312
+NLCNOUN equ 313
+NLCADJ  equ 314
+NLCVERB equ 315
+NLVP    equ 316
+NLNP    equ 317
+NLAP    equ 318
+NLS     equ 319
+NLEOL   equ 320
+NLROOT  equ 321
+NLDOBJ  equ 322
+NLIOBJ  equ 323
+NLMOD   equ 324
+NLIGNR  equ 325
+NLVOCAB equ 326
+NLSPEC  equ 327
+NLSPEC2 equ 328
+NLPHR   equ 329
+NLPHR2  equ 330
+NLMORE  equ 331
+NLUNIT  equ 332
+NLPNCT  equ 333
+NLEMPT  equ 334
+NLOR    equ 335
+NLOR2   equ 336
+NLATOM  equ 337
+NLOPT   equ 338
+NLWORD  equ 339
+NLPUT   equ 340
+NLNUM   equ 341
+EOGRAMMAR  equ 342
+MAXNLTOKEN equ 343
+
+;;;
+;;; the following should be in sync
+;;; VOCAB.H
+;;;
+VERB        equ 800h ;2048
+ADV         equ 400h ;1024
+AUXV        equ 200h ;0512
+NOUN        equ 100h ;0256
+PRON        equ 080h ;0128
+ADJ         equ 040h ;0064
+ART         equ 020h ;0032
+POS         equ 010h ;0016
+ASS         equ 008h ;0008
+CONJ        equ 004h ;0004
+
+ORSAID      equ 0f0h ;240
+ANDSAID     equ 0f1h ;241
+NEXTPART    equ 0f2h ;242
+LEFTPAREN   equ 0f3h ;243
+RIGHTPAREN  equ 0f4h ;244
+OPTBEGIN    equ 0f5h ;245
+OPTEND      equ 0f6h ;246
+NUMBER      equ 0f7h ;247
+MODIFIES    equ 0f8h ;248
+RUNON       equ 0f9h ;249
+METAEND     equ 0ffh ;255
+
+;;;
+;;; the following should be in sync
+;;; NLSDGRMR.H
+;;;
+METASHIFT   equ 100h
+
+NLRNON   equ RUNON * METASHIFT 
+NLLESS   equ MODIFIES * METASHIFT
+NLSLSH   equ NEXTPART * METASHIFT
+NLLP     equ LEFTPAREN * METASHIFT
+NLRP     equ RIGHTPAREN * METASHIFT
+NLLB     equ OPTBEGIN * METASHIFT
+NLRB     equ OPTEND * METASHIFT
+NLCOMA   equ ORSAID * METASHIFT
+NLAND    equ ANDSAID * METASHIFT
+NLEOSPEC equ METAEND * METASHIFT
+NLEND    equ METAEND * METASHIFT
+

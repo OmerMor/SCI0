@@ -1,0 +1,2 @@
+(0	quit		verb)
+(1 zebra		noun)

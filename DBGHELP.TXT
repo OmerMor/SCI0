@@ -1,0 +1,46 @@
+(out-file "vocab.995")
+(header (byte #x86 0))	;set up as a vocab resource
+
+(define	NL	'(byte 10))
+
+(
+	"q - quit" NL
+	"b - set breakpoint" NL
+	NL
+	"a - inspect ID in accumulator" NL
+	"c - inspect current object" NL
+	"i - inspect object or memory" NL
+	NL
+	"f - show free heap" NL
+	"s - show sends" NL
+	"r - show resource types" NL
+	"o - show objects in heap" NL
+	"O - show objects w/ addresses" NL
+	"S - show stack usage" NL
+	NL
+	"g - edit global var" NL
+	"l - edit local var" NL
+	"t - edit temp var" NL
+	NL
+	"Enter - single step" NL
+	"Tab - step across send"
+)
+
+
+(
+	"i - inspect selector" NL
+	"e - edit selector" NL
+	NL
+	"c - display collection" NL
+	NL
+	"up, down arrow" NL
+	"  - move address by 16 bytes" NL
+	"left, right arrow" NL
+	"  - move address by 2 bytes" NL
+	NL
+	"[ - move to next in doubly-" NL
+	"    linked list" NL
+	"] - move to previous in" NL
+	"    doubly-linked list"
+)
+
