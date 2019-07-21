@@ -92,6 +92,7 @@
 			ChangeVolume
 			ChangeSndState
 			FadeSound
+			NumVoices
 		)
 
 	;List handling.
@@ -191,16 +192,48 @@
 			CurDevice
 			SameDevice
 			DevRemovable
+			CloseDevice
 		)
 	GetSaveDir			kernel	104
 	CheckSaveGame		kernel	105
 
 	ShakeScreen			kernel	106
+		; shakes [dir]
+		(enum	1
+			shakeSDown
+			shakeSRight
+			shakeSDiagonal
+		)
+
+
 	FlushResources		kernel	107
 	
 	SinMult				kernel	108
 	CosMult				kernel	109
 	SinDiv				kernel	110
 	CosDiv				kernel	111
+
+	Graph					kernel	112
+		(enum	1				; ARGS								RETURNS
+			GLoadBits		; bitmap number
+			GDetect			; none 								# of colors available
+			GSetPalette		; Palette number
+			GDrawLine  		; x1/y1/x2/y2 mapSet colors...
+			GFillArea  		; x/y/ mapSet colors...
+			GDrawBrush 		; x/y/ size randomSeed mapSet colors...
+			GSaveBits		; top/left/bottom/right mapSet				saveID of area
+			GRestoreBits	; saveID from SaveBits
+			GEraseRect		; top/left/bottom/right (draws visual in background color)
+			GPaintRect		; top/left/bottom/right (draws visual in foreground color)
+			GFillRect  		; top/left/bottom/right mapSet colors...
+			GShowBits		; top/left/bottom/right mapSet
+			GReAnimate		; top/left/bottom/right
+			GInitPri			; horizon/base, Rebuild priority tables
+		)
+
+	Joystick				kernel	113
+		(enum	12
+			JoyRepeat
+		)
 )
 

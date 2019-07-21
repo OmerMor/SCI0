@@ -72,6 +72,59 @@
 )
 
 
+(class SysWindow kindof	Object
+	(properties
+		top		0
+		left		0
+		bottom	0
+		right		0
+		color		0			; foreground color
+		back		15			; background color
+		priority	-1			; priority
+		window	0			; handle/pointer to system window
+		type	0				; generally	corresponds to system window types
+		title		0			; text appearing in title bar if present
+
+		;; this rectangle is the working area for X/Y centering
+		;; these coordinates can define a subsection of the picture
+		;; in which a window will be centered
+		brTop		0
+		brLeft	0
+		brBottom	190
+		brRight	320
+	)
+
+	(methods
+		open
+		dispose
+	)
+
+	;; Open corresponding system window structure
+	;; Custom window type 0x81 indicates that system
+	;; will NOT draw the window, only get a port and link into list
+	(method (open)
+		(= window 
+			(NewWindow 
+				top 
+				left 
+				bottom 
+				right 
+				title 
+				type
+				priority 
+				color
+				back
+			)
+		)
+	)
+	(method (dispose)
+		(if window
+			(DisposeWindow window)
+			(= window 0)
+		)
+		(super dispose:)
+	)
+)
 
 
 
@@ -82,6 +135,10 @@
 
 	(method (init theComment names nums)
 		;; Initialize the dialog.
+
+
+		; give ourself the class SysWindow as our window
+		(= window SysWindow)
 
 		;Re-init our size, with no elements.
 		(= nsBottom 0)
@@ -110,7 +167,8 @@
 			text: names,
 			font: smallFont,
 			setSize:,
-			moveTo: MARGIN (+ nsBottom MARGIN)
+			moveTo: MARGIN (+ nsBottom MARGIN),
+			state: dExit
 		)
 
 		;Add three buttons down the side.
@@ -357,6 +415,9 @@
 (instance GetReplaceName of Dialog
 
 	(method (doit theComment &tmp ret)
+		; give ourself the class SysWindow as our window
+		(= window SysWindow)
+
 		(text1
 			setSize:,
 			moveTo:MARGIN MARGIN

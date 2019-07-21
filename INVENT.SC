@@ -209,6 +209,9 @@
 			(return 0)
 		)
 
+		; give ourself the class SysWindow as our window
+		(= window SysWindow)
+
 		;Size dialog and add button to lower right
 		(self setSize:)
 		(= yesI (DButton new:))

@@ -31,44 +31,55 @@
 ;;;; These are static objects which are used in the generalized game.  Game
 ;;;; specific objects will be defined in module 0.
 
-(instance theCast of Set
+(instance theCast of EventHandler
 	(properties
 		name "cast"
 	)
 )
-;	(instance theSortedCast of Set
-;		(properties
-;			name "sorted cast"
-;		)
-;	)
-(instance theFeatures of Set
+(instance theFeatures of EventHandler
 	(properties
 		name "features"
 	)
 )
-;	(instance theSortedFeatures of List
-;		(properties
-;			name "sorted features"
-;		)
-;	)
-(instance theSounds of Set
+(instance theSortedFeatures of EventHandler
+	(properties
+		name "sFeatures"
+	)
+	(method (delete theElement)
+		;;need this because SortedAdd creates dynamic temporary lists that
+		;;must be released and disposed
+		(super delete theElement)
+		(if (and useSortedFeatures	
+				(theElement isKindOf Collection)
+				(not (OneOf theElement regions locales))
+			)
+			(theElement release, dispose)
+		)
+	)
+)
+(instance theSounds of EventHandler
 	(properties
 		name "sounds"
 	)
 )
-(instance theRegions of Set
+(instance theRegions of EventHandler
 	(properties
 		name "regions"
 	)
 )
-(instance theLocales of Set
+(instance theLocales of EventHandler
 	(properties
 		name "locales"
 	)
 )
-(instance theAddToPics of Set
+(instance theAddToPics of EventHandler
 	(properties
 		name "addToPics"
+	)
+	;; Call kernel to draw the current list of PicViews
+	;; They will not be seen until the next Animate call
+	(method (doit)
+		(AddToPic elements)
 	)
 )
 (instance roomControls of Controls
@@ -83,15 +94,7 @@
 )
 
 
-;;;; This is the instance of Ego which the User controls in the game.
-(instance egoObj of Ego
-	(properties
-		name "ego"
-	)
-)
-
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (class Game of Object
@@ -121,6 +124,7 @@
 		checkAni			;check the animation speed, dropping out Extras if too bad
 		notify			;communication mechanism between Game, Regions, and Rooms
 		setScript		;set the script for the Game
+		cue				;cues the game script
 
 		wordFail			;invoked when parser can't find a word in the dictionary
 		syntaxFail		;invoked when the parser can't make sense of input
@@ -136,15 +140,6 @@
 		;; cycle.
 
 		(= theGame self)
-		
-		;Set normal and wait cursor forms.
-		(= normalCursor ARROW_CURSOR)
-		(= waitCursor HAND_CURSOR)
-		
-		;Set the user and small fonts.
-		(= userFont USERFONT)
-		(= bigFont USERFONT)
-		(= smallFont 4)
 
 		(= curSaveDir (GetSaveDir))
 		(if (not (GameIsRestarting))
@@ -170,6 +165,7 @@
 		;Dispose the event which triggered the save-game which we're 
 		;restoring.
 		(if lastEvent (lastEvent dispose:))
+		(sortedFeatures release:)
 
 		;Dispose any modeless Dialog present when the user selected to
 		;restore the game.
@@ -184,12 +180,15 @@
 		;Draw the picture and put in all the PicViews which were in the game
 		;being restored.
 		(theGame setCursor:waitCursor TRUE)
-		(DrawPic (curRoom curPic?) WIPEDOWN)
+		(DrawPic (curRoom curPic?) PLAIN TRUE currentPalette)
+		(if (!= overlays -1)
+			(DrawPic overlays PLAIN FALSE currentPalette)
+		)
 		(if (curRoom controls?)
 			((curRoom controls?) draw:)
 		)
 		; redraw the views that we have saved as addToPics
-		(addToPics eachElementDo: #doit:)
+		(addToPics doit:)
 
 		(theGame setCursor:normalCursor (HaveMouse))
 
@@ -218,37 +217,28 @@
 		(= foo Sound)
 		(= foo Save)
 
-		;Set the game speed.
-		(= speed 6)
-		(= aniThreshold 10)
-
 		;Put the IDs of some important objects in variables for easy (and fast)
 		;access.  Init the collections with a null add.
-		(= ego egoObj)
-
 		((= cast theCast) add:)
-		;((= sortedCast theSortedCast) add:)
-		(= sortedCast cast)						;to replace sorted copy just copy
 
 		((= features theFeatures) add:)					;Pablo
-		;((= sortedFeatures theSortedFeatures) add:)
-		(= sortedFeatures features)			;to replace sorted copy just copy
+		((= sortedFeatures theSortedFeatures) add:)
 
 		((= sounds theSounds) add:)
 		((= regions theRegions) add:)
 		((= locales theLocales) add:)
 		((= addToPics theAddToPics) add:)
 		((= timers theTimers) add:)
-
+		
 		;Set the current save/restore directory
 		(= curSaveDir (GetSaveDir))
 
 		;Initialize the inventory.
 		(Inventory init:)
 
-		;Attach the user to ego.
-		(User alterEgo:ego)
-	)
+		;Initialize the user.
+		(User init:)
+	);game init
 
 
 	(method (doit)
@@ -259,14 +249,21 @@
 		;appropriate cue:ing.
 		(sounds eachElementDo: #check:)
 		(timers eachElementDo: #doit:)
+		
+		(if modelessDialog
+			;;this used to be done by dialog's timer, so put it here
+			;;check will cue dialog if its seconds have expired
+			;;(like scripts) --Pablo
+			(modelessDialog check:)
+		)
 
 		;Give each character in the cast the chance to do its thing.
 		;Show the changes on the screen, then delete any cast members
 		;which are scheduled for deletion.
 		(Animate (cast elements?) TRUE)
-		(if deleteCastMember
-			(cast eachElementDo: #delete:)
-			(= deleteCastMember FALSE)
+		(if doMotionCue
+			(= doMotionCue FALSE)
+			(cast eachElementDo: #motionCue:)
 		)
 
 		;Execute any script attached to theGame.
@@ -278,7 +275,10 @@
 		(regions eachElementDo: #doit:)
 
 		;User now responds to what he sees on screen.
-		(User doit:)
+		;unless a room change is in progress
+		(if (== newRoomNum curRoomNum)
+			(User doit:)
+		)
 
 		;If somebody wants us to change rooms, they set newRoomNum to do so.
 		(if (!= newRoomNum curRoomNum)
@@ -299,20 +299,30 @@
 	(method (newRoom n &tmp mX mY theMover theEgo oldCur evt)
 		;; Change rooms to room number n.
 		
-		;restore some default values for globals
-		(= perspective 0)
-		(= skipFactor 1)
 
 		;Dispose of any PicViews.
 		(addToPics dispose:)
-
+		
+		;Dispose of non-PicView features left on features list
+		(features
+			eachElementDo: #dispose:,
+			release							;don't want stray nodes, they fragment!
+		)
+		
 		;Dispose the cast, expired timers, non-kept regions, and locales.
-		(cast eachElementDo: #dispose:)
-		(cast eachElementDo: #delete:)
+		(cast
+			eachElementDo: #dispose:,
+			eachElementDo: #delete:
+		)
 		(timers eachElementDo: #delete:)
-		(regions eachElementDo: #perform: DisposeNonKeptRegion)
-		(locales eachElementDo: #dispose:)
-		(features eachElementDo: #dispose:)
+		(regions
+			eachElementDo: #perform: DisposeNonKeptRegion,
+			release	;don't want nodes for kept regions, they fragment!
+		)
+		(locales
+			eachElementDo: #dispose:,
+			release							;don't want stray nodes, they fragment!
+		)
 
 		;Dispose lastCast (internal kernel knowledge of the cast during
 		;the previous animation cycle).
@@ -382,13 +392,15 @@
 		)
 
 		;Initialize the new room and add it to the front of the region list.
-		(regions
-			addToFront:
-				((= curRoom (ScriptID roomNum))
-					init:,
-					yourself:
-				)
+		(regions	addToFront: (= curRoom (ScriptID roomNum)))
+		(curRoom init:)
+				
+		;Activate Demo Demon if needed, 
+		;-----------------------------
+		(if demoScripts
+			(curRoom setRegions DEMO)
 		)
+		
 	)
 
 
@@ -396,8 +408,19 @@
 		;; Default event handling for the Game is to pass the event along
 		;; to the regions.
 
-		(regions eachElementDo: #handleEvent: event)
-		(locales eachElementDo:#handleEvent: event)
+		(or
+			(if (not (and useSortedFeatures (== (event type) saidEvent)))
+				(or
+					(regions handleEvent: event)
+					(locales handleEvent: event)
+				)
+			)
+			(if script
+				(script handleEvent:event)
+			)
+		)
+		(return (event claimed))
+		
 	)
 
 
@@ -426,6 +449,9 @@
 		;; kernel function.
 
 		(Load FONT smallFont)
+		(Load CURSOR waitCursor)
+
+		(= oldCur (self setCursor:normalCursor))
 		(= oldPause (Sound pause:TRUE))
 		(if (PromptForDiskChange TRUE)
 			(if modelessDialog
@@ -456,6 +482,8 @@
 		;; (RestoreGame) kernel function.
 
 		(Load FONT smallFont)
+		(Load CURSOR waitCursor)
+
 		(= oldCur (self setCursor:normalCursor))
 		(= oldPause (Sound pause:TRUE))
 		(if (PromptForDiskChange TRUE)
@@ -497,16 +525,12 @@
 	)
 	
 	
-	(method (setCursor form force &tmp oldCur)
+	(method (setCursor form &tmp oldCur)
 		;; Set the cursor form, returning the previous form.
 
 		(= oldCur theCursor)
 		(= theCursor form)
-		(if (== argc 1)
-			(SetCursor form)
-		else
-			(SetCursor form force)
-		)
+		(SetCursor form &rest)
 		(return oldCur)
 	)
 
@@ -566,15 +590,23 @@
 
 
 	(method (setScript newScript)
-		;; Attach a new script to the Game.
-
+		;; Attach a new script to this object, removing any existing one.
+		
 		(if script
 			(script dispose:)
 		)
-		(if (= script newScript)
-			(newScript init: self)
+		(if newScript
+			(newScript init: 	self 	&rest)
 		)
 	)
+	(method (cue)
+		;; Just cue: any attached script.
+
+		(if script
+			(script cue:)
+		)
+	)
+	
 )
 
 
@@ -635,6 +667,7 @@
 		(if script
 			(script handleEvent: event)
 		)
+		(return (event claimed))
 	)
 
 
@@ -656,16 +689,12 @@
 
 
 	(method (setScript newScript)
-		;; Attach a new script to the Region.
-
-		(if script
-			(script dispose:)
-		)
-		(if (= script newScript)
-			(newScript init: self)
-		)
+		;; Attach a new script to this object, removing any existing one.
+		
+		(if (IsObject script)		(script dispose:))
+		(if newScript	(newScript init: self &rest))
 	)
-
+	
 
 	(method (cue)
 		;; Just cue: any attached script.
@@ -700,6 +729,10 @@
 		south 0			;module number of Room to the south
 		west 0			;module number of Room to the west
 		curPic 0			;picture number of currently visible picture
+		
+		picAngle		0	;how far from vertical is our view? 0-89
+		vanishingX	160
+		vanishingY	-30000
 	)
 
 	(methods
@@ -708,6 +741,7 @@
 		setFeatures		;set the Features for this Room
 		setLocales		;set the Locales for this Room
 		drawPic			;draw the picture for this Room
+		overlay			;overlay a picture
 	)
 
 
@@ -715,6 +749,9 @@
 	(method (init &tmp how)
 		(= number curRoomNum)
 		(= controls roomControls)
+
+		(= perspective picAngle)
+		;(= skipFactor 1)
 
 		;Draw a picture (if non zero) in proper style
 		(if picture
@@ -736,40 +773,28 @@
 				((User alterEgo?) x: (+ westEdge 1))
 			)
 		)
-		(ego edgeHit:0)
+		((User alterEgo?) edgeHit:0)
 	)
 
 
-	(method	(doit)
+	(method	(doit &tmp nRoom)
 		;; Send the doit: to any script, then check to see if ego has
 		;; hit the edge of the screen.
+		;; - revised by Pablo 11/19/88 to save space
 
 		(if script
 			(script doit:)
 		)
-		(switch ((User alterEgo?) edgeHit?)
-			(NORTH
-				(if north
-					(self newRoom:north)
-				)
-			)
-			(EAST
-				(if east
-					(self newRoom:east)
-				)
-			)
-			(SOUTH
-				(if south
-					(self newRoom:south)
-				)
-			)
-			(WEST
-				(if west
-					(self newRoom:west)
-				)
+		(= nRoom
+			(switch ((User alterEgo?) edgeHit?)
+				(NORTH	north)
+				(EAST		east)
+				(SOUTH	south)
+				(WEST		west)
 			)
 		)
-	)
+		(if nRoom (self newRoom:nRoom))
+	);doit
 
 
 	(method (dispose)
@@ -781,10 +806,13 @@
 
 
 	(method (handleEvent event)
-		(super handleEvent: event)
-		(if controls
-			(controls handleEvent: event)
+		(or
+			(super handleEvent: event)
+			(if controls
+				(controls handleEvent: event)
+			)
 		)
+		(return (event claimed))
 	)
 
 
@@ -798,6 +826,7 @@
 			(= n [region i])
 			(= regID (ScriptID n))
 			(regID number: n)
+			(regions add: regID)
 			(if (not (regID initialized?))
 				(regID init:)
 			)
@@ -856,12 +885,32 @@
 		(theAddToPics dispose:)
 
 		(= curPic pic)
+		(= overlays -1)
 		(DrawPic pic
 			(cond
 				((== argc 2) theStyle)		;use passed style
 				((!= style -1) style)		;use default room style
 				(else showStyle)				;use global style
 			)
+			TRUE									; clear buffer before drawing
+			currentPalette						; defaults to 0
+		)
+	)
+
+
+	(method (overlay pic theStyle)
+		;; Overlay the current picture with another.
+
+		(= overlays pic)
+		(DrawPic
+			pic
+			(cond
+				((== argc 2) theStyle)		;use passed style
+				((!= style -1) style)		;use default room style
+				(else showStyle)				;use global style
+			)
+			FALSE									; don't clear buffer
+			currentPalette						; defaults to 0
 		)
 	)
 )
@@ -887,6 +936,7 @@
 
 	(method (handleEvent event)
 		;; Game programmer must redefine this method.
+		(return (event claimed))
 	)
 
 
@@ -977,6 +1027,9 @@
 			(if saveDisk {SAVE GAME} else {GAME})
 			@curDevice
 		)
+
+		;Do whatever is necessary to prepare for switching disks.
+		(DeviceInfo CloseDevice)
 
 		(= ret
 			(if saveDisk

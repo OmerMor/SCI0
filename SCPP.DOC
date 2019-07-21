@@ -1,0 +1,17 @@
+Documentation for SCPP, a pretty printer for SCRIPT code
+
+by Pablo Ghenis, 9/21/88 (c) Sierra On-line, 1988
+
+
+SCPP is a pretty-printer for SCI code; or, more accurately speaking, a 
+pretty-indenter. SCPP.BAT is a batch file that makes use of SCPPRINT.EXE, 
+which is a Unix style filter that will strip all leading blank space off of 
+every line and replace it with tab characters. It will not alter a file's 
+line breaks, just indent based on parenthesis nesting.
+
+Usage: scpp <filename> [<extension>]
+       default extension is .SC
+
+SCPP will save the original file with extension .BAK and replace it 
+with a properly indented version. During run time it uses a temporary file 
+with extension .TMP. 

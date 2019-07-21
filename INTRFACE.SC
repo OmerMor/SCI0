@@ -38,6 +38,7 @@
 	GetNumber
 	Printf
 	StillDown
+	MousedOn
 )
 
 (public
@@ -46,14 +47,8 @@
 	GetInput		2
 	GetNumber	3
 	Printf		4
+	MousedOn		5
 )
-
-
-(local
-	modelessPort
-	[storage 20]
-)
-
 
 
 
@@ -66,8 +61,45 @@
 	(return ret)
 )
 
-
-
+(procedure (MousedOn obj event theMods distance)
+	(return
+		(cond
+			((or
+				(!= (event type) mouseDown)
+				(and
+					(obj respondsTo:#signal)
+					(& (obj signal?) actorHidden)
+				)
+			 )
+				FALSE
+			)
+			((and
+				(>= argc 3)
+				theMods
+				(== (& (event modifiers) theMods) 0)
+			 )
+				FALSE
+			)
+			((obj respondsTo:#nsLeft)
+				(InRect 
+					(obj nsLeft?) (obj nsTop?) (obj nsRight?) (obj nsBottom?)
+					event
+				)
+			)
+;			((obj respondsTo:#x)
+;				(<= 
+;					(GetDistance 
+;						(event x?)
+;						(event y?)
+;						(obj x?) 
+;						(- (obj y?) (obj z?))	;apparent y-coordinate
+;					) 
+;					(if (>= argc 4) distance else 10)
+;				)
+;			)
+		)
+	)
+)
 
 (class MenuBar kindof Object
 	;;; The menubar is a two dimensional array maintained solely by the kernel.
@@ -107,22 +139,22 @@
 	)
 
 
-	(method (handleEvent event)
+	(method (handleEvent event &tmp retVal oldRepeat)
 		;; Respond to user events (if enabled).
-		(return
-			(if state
-				(MenuSelect event)
-			else
-				0
-			)
+		(= retVal 0)
+		(if state
+			(= oldRepeat (Joystick JoyRepeat 30))
+			(= retVal (MenuSelect event &rest))
+			(Joystick JoyRepeat oldRepeat)
 		)
+		(return retVal)
 	)
 
 )
 
 
 
-(class Item kindof Object
+(class DItem kindof Object
 	;;; The superclass of all items of control in the user interface.
 
 	(properties
@@ -145,12 +177,20 @@
 		check					; check event x/y in rectangle
 		track					; select confirmation
 		doit					; instantiated for each subclass/control
+		setSize		; instantiated in each type of item
+		move			; relative move
+		moveTo		; absolute move
+		draw			; draw self in proper manner
+		setMark		; set default marking
+		isType		; return equality of type and argument
+		checkState	; do a bit test of argument
+		cycle			; do something cyclic
 	)
 
 
 	(method (enable bool)
 		;; Enable/disable this control.
-		(if (or (== argc 0) bool)
+		(if bool
 			(|= state dActive)
 		else
 			(&= state (~ dActive))
@@ -160,11 +200,12 @@
 
 	(method (select bool)
 		;; Select/deselect this control.
-		(if (or (== argc 0) bool)
+		(if bool
 			(|= state dSelected)
 		else
 			(&= state (~ dSelected))
 		)
+		(self draw:)
 	)
 
 
@@ -242,28 +283,6 @@
 			(return self)
 		)
 	)
-)
-
-
-
- 
-(class DItem kindof Item
-	;; The superclass of all control items which can be added to a dialog.
-
-
-	(methods
-		setSize		; instantiated in each type of item
-		move			; relative move
-		moveTo		; absolute move
-		draw			; draw self in proper manner
-;		check			; check the x/y passed
-;		track			; track the xy passed
-;		checkKey		; see if key matched
-		setMark		; set default marking
-		isType		; return equality of type and argument
-		checkState	; do a bit test of argument
-	)
-
 
 	(method (isType theType)
 		;; Return TRUE if this DItem is of type theType.
@@ -276,11 +295,6 @@
 		(return (& state	bit))
 	)
 
-
-	(method (select bool)
-		(super select: bool)
-		(self draw:)
-	)
 
 
  	(method (doit)
@@ -318,9 +332,13 @@
 
 		(DrawControl self)
 	)
+
+	; do something on each cycle through the dialog's doit
+	(method (cycle)
+
+	)
+
 )
-
-
 
 
 (class DText 	kindof DItem
@@ -338,9 +356,7 @@
 
 
 	(method (new &tmp newText)
-		(= newText (super new:))
-		(newText font:userFont)
-		(return newText)
+		(return ((super new:) font: userFont, yourself:))
 	)
 
 	(method (setSize w &tmp [r 4])
@@ -361,9 +377,9 @@
 
 	(properties
 		type:dIcon
-		view:0			;view number
-		loop:0			;loop number
-		cel:0				;cel number
+		view:0			; view number
+		loop:0			; loop number
+		cel:0				; cel number
 	)
 
 	(method (setSize &tmp [r 4])
@@ -419,7 +435,7 @@
 
 	(method (track evt)
 		(EditControl self evt)
-		(return self)
+		(return self)				;used to return 0, see Corey
 	)
 
 
@@ -643,7 +659,7 @@
 				)
 			)
 		)			
-		(return (if (event claimed?) self else 0))
+		(return  (if (and (event claimed?) (& state dExit)) self  else 0))
 	)
 )
 
@@ -666,8 +682,11 @@
 		nsBottom	0
 		nsRight 0
 		time 0
-		timer 0
 		busy	0		; timer dispose lockout
+		
+		;; properties below allow us to do without timers. --Pablo
+		seconds 0		;the number of seconds to wait before changing state
+		lastSeconds 0	;private variable
 	)
 
 	(methods
@@ -675,7 +694,7 @@
 		open			; get a window to live in
 		draw			; actually show on screen
 		doit			; get user input to me
-		cue			; respond to a timer event
+		cue			; respond to time expiration
 		dispose		; close dialog
 		advance		; advance to next in list
 		retreat		; retreat to previous in list
@@ -684,23 +703,34 @@
 		center		; center in screen
 		setSize		; make me big enough
 		handleEvent	; respond to an event
+		check			; cue if time is up
 	)
 
 
-	(method (open type pri)
+	(method (open wtype pri)
 		;; Get a new window for this dialog.
 
-		; Don't open another if we already have one.
-		(if (not window)
-			(if (and (PicNotValid) cast)
-				(Animate (cast elements?) FALSE)
-			)
-			(= window (NewWindow nsTop nsLeft nsBottom nsRight text type pri))
+		(if (and (PicNotValid) cast)
+			(Animate (cast elements?) FALSE)
 		)
 
-		(if time
-			(Timer setReal: self time)
+		; operate with a clone of provided window
+		(= window (window new:))
+		(window
+			top: nsTop, 
+			left:nsLeft,
+			bottom: nsBottom,
+			right: nsRight,
+			title: text,
+			type: wtype,
+			priority: pri,
+			open:,
 		)
+
+		(= seconds time)
+		;;(if time
+		;;	(Timer setReal: self time)
+		;;)
 
 		; draw the items
 		(self draw:)
@@ -731,6 +761,7 @@
 		; tell the timer we are busy
 		(= busy 1)
 
+		(self eachElementDo: #init:)
 
 		; if def is not passed or zero, we pick first active item
 		; unmark last default
@@ -762,6 +793,9 @@
 		( = ret 0)
 		(while (not ret)
 
+			; call everyones cycler
+			(self eachElementDo: #cycle:)
+			
 			; get an event and give everyone a shot at it
 			(GlobalToLocal (= event (Event new:)))
 
@@ -782,10 +816,8 @@
 			; get rid of the event we got
 			(event dispose:)
 
-			; let the timer have some time to kill us
-			(if timer
-				(timer doit:)
-			)
+			(self check:)	;see if our time is up, if so dispose (maybe)
+
 
 			; this is ESC or INACTIVE or TIMER said get unbusy
  			(if (or (== ret -1) (not busy))
@@ -793,6 +825,8 @@
 				(EditControl theItem 0)
 				(break)
 			)		
+		
+			(Wait 1)
 		)					
 
 		; tell the timer we can be killed
@@ -801,7 +835,24 @@
 		(return ret)
 	)
 
-
+	(method (check &tmp thisSeconds)
+			
+		;;following code replaces timer
+		;;invoked from dialog doit for normal dialogs
+		;;or from game doit for modelessDialogs
+		;;--Pablo
+		
+		(if seconds
+			(= thisSeconds (GetTime 1))
+			(if (!= lastSeconds thisSeconds)
+				(= lastSeconds thisSeconds)
+				(if (not (-- seconds))
+					(self cue:)
+				)
+			)
+		)
+	)
+		
 	(method (cue)
 		(if (not busy)
 			(self dispose:)
@@ -814,27 +865,24 @@
 	(method (dispose)
 		;; Dispose of dialog and its window.
 
+		;; set system global to zero if it is us
 		(if (== self modelessDialog)
 			(SetPort modelessPort)
-		)
-
-		(if window
-			(DisposeWindow window)
-		)
-		(= window 0)
-
-		; set system global to zero if it is us
-		(if (== self modelessDialog)
 			(= modelessDialog 0)
 			(= modelessPort 0)
 		)
 
-		; dispose of any timer we might have
-		(if timer
-			(timer dispose:, delete:)
+		(if window
+			(window dispose:)
 		)
+		(= window 0)
 
-		; clear the currently selected item
+		;; dispose of any timer we might have
+		;;(if timer
+		;;	(timer dispose:, delete:)
+		;;)
+
+		;; clear the currently selected item
 		(= theItem 0)
 
 		(super dispose:)
@@ -845,10 +893,10 @@
 		;; Private.  Move to next ACTIVE item in list.
 
 		(if theItem
-			; clear this one
+			;; clear this one
 			(theItem select: FALSE)
 
-			; we need the node value that we are
+			;; we need the node value that we are
 			(= node (self contains: theItem))
 			(repeat
 				(if (not (= node (self next: node)))
@@ -913,26 +961,18 @@
 		(if (= ret (self firstTrue: #handleEvent: event))
 			(EditControl theItem 0)
 
-			(cond
-				((ret isType: dEdit)
-					; editItems are at variance with the rules
-					; they are always made the item when selected
-					(if theItem
-						(theItem select:FALSE)
-					)
-					((= theItem ret) select:TRUE)												
+			; If NOT marked EXIT we doit: and advance to next
+			(if (not (ret checkState: dExit))
+				(if theItem
+					(theItem select:FALSE)
+				)
+				((= theItem ret) select:TRUE)												
 
-					; don't report it
-					(= ret 0)
-				)
-				((not (ret isType: dSelector))
-					; If NOT marked EXIT we doit: and advance to next
-					(if (not (ret checkState: dExit))
-						(ret doit:)
-						(self advance:)
-						(= ret 0)
-					)
-				)
+				; Send "doit" to object to perform any subclass-specific stuff
+				(ret doit:)
+
+				; don't report it
+				(= ret 0)
 			)
 		else
 			; check standard conventions
@@ -1013,8 +1053,8 @@
 		;; Center the dialog in the screen.
 
 		(self moveTo:
-			(/ (- SCRNWIDE (- nsRight nsLeft)) 2)	
-			(/ (- SCRNHIGH (- nsBottom nsTop)) 2)
+			(+ (window brLeft) (/ (- (- (window brRight) (window brLeft)) (- nsRight nsLeft)) 2))
+			(+ (window brTop) (/ (- (- (window brBottom) (window brTop)) (- nsBottom nsTop)) 2))
 		)	
 	)
 
@@ -1101,16 +1141,14 @@
 
 
 (procedure (GetInput str maxLen prompt &tmp theDialog editI ret oldPause)
-
 	(return
-		(Print
-			(if (>= argc 3)
-				prompt
-			else
-				{}
+		(and
+			(Print
+				(if (>= argc 3) prompt else {})
+				#edit: str maxLen
+				&rest
 			)
-			#edit: str maxLen
-			&rest
+			(StrLen str)
 		)
 	)
 )
@@ -1134,8 +1172,6 @@
 
 	(define	MAXBUTTONS	5)
 
-	(= curPort (GetPort))
-
 	; initialize tmps	
 	(= atX (= atY -1))
 
@@ -1146,16 +1182,19 @@
 	(= editI 
 	(= buttonsUsed 0))))))
 
-	(= [buttons 0] 
-	(= [buttons 1]
-	(= [buttons 2]
-	(= [buttons 3]
-	(= [buttons 4]
-	(= [buttons 5] 0))))))
+;	(= [buttons 0] 
+;	(= [buttons 1]
+;	(= [buttons 2]
+;	(= [buttons 3]
+;	(= [buttons 4]
+;	(= [buttons 5] 0))))))
 
 
-	; get a dialog to work with
-	(= theDialog (Dialog new:))
+	; get a dialog to work with and give it the system window class
+	((= theDialog (Dialog new:))
+		window: systemWindow,
+		name: {PrintD}, 
+	)
 
 	; a text item is mandatory
 	(= textI (DText new:))
@@ -1176,8 +1215,15 @@
 		)
 	)
 
-	(textI text:@buffer, moveTo: MARGIN MARGIN, font: userFont, setSize:)
-	(theDialog name: {PrintD}, add: textI)
+	(textI 
+		text:@buffer, 
+		moveTo: MARGIN MARGIN, 
+		font: userFont, 
+		setSize:
+	)
+	(theDialog 
+		add: textI
+	)
 
 	; the rest of the items/messages passed are optional
 	(for ((= i i)) (< i argc) ((++ i))
@@ -1233,18 +1279,21 @@
 			)
 
 			; add optional icon to list
+			; if first arg is an Object we add it
 			(icon
-				(if iconI
-					(+= i 3)
+				(if (IsObject [args (+ i 1)])
+					(= iconI ([args (+ i 1)] new:))
+					(iconI setSize:)
+					(+= i 1)
 				else
 					(= iconI (DIcon new:))
-					(++ i)
-					(iconI view:[args i])
-					(++ i)
-					(iconI loop:[args i])
-					(++ i)
-					(iconI cel:[args i])
-					(iconI setSize:)
+					(iconI 
+						view:[args (+ i 1)],
+						loop:[args (+ i 2)],
+						cel:[args (+ i 3)],
+						setSize:,
+					)
+					(+= i 3)
 				)
 			)
 
@@ -1254,6 +1303,10 @@
 					(modelessDialog dispose:)
 				)
 				(= keepIt theDialog)
+			)
+			(window
+				(++ i)
+				(theDialog window: [args i])
 			)
 		)
 	)
@@ -1289,7 +1342,7 @@
 		)
 	)
 
-	(for ((= i 0)) [buttons i] ((++ i))
+	(for ((= i 0)) (< i buttonsUsed) ((++ i))
 		([buttons i] moveTo: butAtX (theDialog nsBottom?))
 
 		; add button
@@ -1322,6 +1375,8 @@
 		 (if (== -1 atY) (theDialog nsTop?) else atY)
 	)
 
+	(= curPort (GetPort))
+
 	(theDialog open: (if (theDialog text?) wTitled else 0) (if keepIt 15 else -1))
 
 	; return theDialog object for user to work with
@@ -1348,14 +1403,19 @@
 	)
 	
 	; if any of the buttons was pressed we return the item's value property
-	(for ((= i 0)) [buttons i] ((++ i))
+	(for ((= i 0)) (< i buttonsUsed) ((++ i))
 		(if (== ret [buttons i])
 			(= ret (ret value?))
 			(break)
 		)
 	)
 
-	; dispose of the dialog and all its elements
+	; if we had no active ITEMS we force a TRUE return
+	(if (not (theDialog theItem))
+		(= ret TRUE)
+	)
+
+		; dispose of the dialog and all its elements
 	(theDialog dispose:)
 	(return ret)
 )

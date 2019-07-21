@@ -17,18 +17,16 @@
 (define	UNDEF		20000)
 
 
-(class Jump kindof Object
+(class Jump kindof Motion
 	;;; Implementation of motion in a gravitational field.
 
 	(properties
+		x UNDEF			;x coord of finish
+		y UNDEF			;y coord of finish
 		gx 0				;gravitational acceleration in pixels/(animation cycle)**2
 		gy 3				;gravitational acceleration in pixels/(animation cycle)**2
 		xStep UNDEF		;horizontal step size
 		yStep 0			;vertical step size
-		client 0			;who's jumping?
-		caller 0			;inform whom?
-		x UNDEF			;x coord of finish
-		y UNDEF			;y coord of finish
 		signal 0			;save are for client's signal bits
 		illegalBits 0	;save area for illegal bits of client
 
@@ -38,14 +36,9 @@
 		;FALSE if you do NOT want this behavior.
 		waitApogeeX TRUE
 		waitApogeeY TRUE
-		
-		dx 0
-		dy 0
 	)
 
 	(methods
-		triedToMove		;has the client attempted to move in this animation cycle?
-		moveDone			;private -- invoked when the destination has been reached
 		setTest			;private -- set up the jump completion test
 	)
 
@@ -88,15 +81,18 @@
 			(= waitApogeeY FALSE)
 		)
 
-		(self setTest:, doit:)
+		(self setTest:)
 	)
 
 
 	(method (doit &tmp lxs lys)
+		(= xLast (client x?))
+		(= yLast (client y?))
+
 		;Move the client.
 		(client
-			x:(+ (client x?) xStep),
-			y:(+ (client y?) yStep)
+			x:(+ xLast xStep),
+			y:(+ yLast yStep)
 		)
 
 		;Accelerate the motion.
@@ -139,25 +135,14 @@
 			(self setTest:)
 		)
 	)
-	
-	
-	(method (triedToMove)
-		;Jump always tries to move:
-		(return TRUE)
-	)
 
 
 	(method (moveDone)
-		;Detach ourselves from client.
-		(client mover:0, illegalBits:illegalBits, signal:signal)
-
-		;Cue our caller (if we have one).
+		(client illegalBits:illegalBits, signal:signal)
 		(if caller
-			(caller cue:)
+			(= doMotionCue TRUE)
+			(= completed TRUE)
 		)
-
-		;We must dispose of ourself.
-		(self dispose:)
 	)
 
 
@@ -183,6 +168,18 @@
 				-1 else 1
 			)
 		)
+	)
+
+
+	(method (motionCue)
+		;Detach from client.
+		(client mover:0)
+
+		(if (and completed (IsObject caller))
+			(caller cue:)
+		)
+
+		(self dispose:)
 	)
 )
 
@@ -215,6 +212,13 @@
 
 		(SetJump self DX DY gy)
 
+ 		(if (not DX)
+			(= x UNDEF)
+		)
+ 		(if (not DY)
+			(= y UNDEF)
+		)
+
 		(switch argc
 			(3
 				(super init: actor)
@@ -227,7 +231,12 @@
 
 
 	(method (moveDone)
-		(client x:x, y:y)
+		(if (!= x UNDEF)
+			(client x:x)
+		)
+		(if (!= y UNDEF)
+			(client y:y)
+		)
 		(super moveDone:)
 	)
 )

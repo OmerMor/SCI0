@@ -16,17 +16,20 @@
 
 (script#	USER)
 
-(include "sortcopy.sh")
 
 (define	INPUTLEN		45)
 (define	INBUFSIZE	(+ (/ INPUTLEN 2) 1))
 
 (local
 	[inputLine INBUFSIZE]
+	inputLen
 )
 
-
-
+(instance userEvent of Event
+	(properties
+		name "uEvt"
+	)
+)
 
 (class User kindof Object
 	(properties
@@ -40,167 +43,155 @@
 		x	-1							; upper/left
 		y	-1							; of user window
 		blocks	TRUE				; stops sounds by default
+		mapKeyToDir TRUE			;map keys to dirs?
+		curEvent	NULL
 	)
-
+	
 	(methods
 		canControl					;specifies whether user controls alterEgo
 		getInput						;collects input from the user
 		said							;passes parsed user input to handleEvent methods
+		handleEvent
 	)
-
-
-	(method (doit &tmp event evType dir)
+	
+	(method (init inLine length)
+		(= inputLineAddr (if argc inLine else @inputLine))
+		(= inputLen (if (== argc 2) length else INPUTLEN))
+		(= curEvent userEvent)
+	)
+	
+	
+	(method (doit)
 		;; See if there is an event.  If none, just return.  Otherwise
 		;; pass the event to other objects in the game to see if they
 		;; want it.
-
-		(= event (Event new:))
+		
+		(if (== 0  demoScripts)
+			(curEvent 
+				type 0			
+				,message 0		
+				,modifiers 0		
+				,y 0				
+				,x 0				
+				,claimed 0		
+			)
+			(GetEvent allEvents curEvent)
+			(self handleEvent curEvent)
+		)
+	)
+	
+	(method (handleEvent event &tmp evType dir)
+		
 		(if (event type?)
 			(= lastEvent event)
-
+			
 			;Convert key events to direction events, if appropriate, but
 			;remember what kind of event it was.
 			(= evType (event type?))
-			(MapKeyToDir event)
-
+			(if mapKeyToDir
+				(MapKeyToDir event)
+			)
+			
 			;Give the event to the menu first.
 			(if TheMenuBar 
-				(TheMenuBar handleEvent: event)
+				(TheMenuBar handleEvent: event evType)
 			)
-
+			
 			;Correct y coord for current grafPort.
 			(GlobalToLocal event)
-	
-			;Pass the Event to the game.
-			(theGame handleEvent: event)
-
-			;If the event is not claimed, give it to either ego (in the case
-			;of direction/mouseDown events) or the entire cast.
-			(if (not (event claimed?))
-				(switch (event type?)
-					(mouseDown
-						(if (and controls (IsObject alterEgo))
-							(alterEgo setMotion:MoveTo (event x?) (event y?))
-							(= prevDir 0)
-							(event claimed:TRUE)
-						)
-					)
-					(direction
-						(if (and controls (IsObject alterEgo))
-							(= dir (event message?))
-	
-							;Pressing the cursor key which started a motion a second
-							;time should stop ego.
-							(if
-								(and
-									(== evType keyDown)				;it's a key
-									(== dir prevDir)					;same dir as before
-									(IsObject (alterEgo mover?))	;ego is moving
-								)
-									(= dir 0)
-							)
-	
-							;In the case of a keyDown event, keep the previous
-							;direction, so we know what key stops ego.
-							(= prevDir (if (== evType keyDown) dir else 0))
-	
-							;Set ego's direction.
-							(alterEgo setDirection:dir)
-							(event claimed:TRUE)
-						)
-					)
-					(else
-						(cast eachElementDo:#handleEvent: event)
-					)
-				)
+			
+			(if (not (event claimed))
+				(theGame handleEvent: event evType)
 			)
-
+			
+			(if (and
+					controls
+					(not (event claimed?))
+					(cast contains alterEgo)
+				)
+				;(alterEgo handleEvent: event evType)
+				(alterEgo handleEvent: event)	;try to get demo demon to work
+			)
+			
 			; If nobody wants this event AND it is a key down
 			; get a line of input and Parse it
 			; and see if anybody wants THAT.
-			(if
-				(and
-					(== (event type?) keyDown)
+			(if (and
+					canInput
 					(not (event claimed?))
+					(== (event type?) keyDown)
 					(or
 						(== (event message?) echo)				; the echo char?
-						(<= SPACEBAR (event message?) 127)	; only a typeable character
+						(<= SPACEBAR (event message?) 255)	; only a typeable char
 					)
-				)
-
-				;Return if input is disallowed
-				(if (and
-					canInput
 					(self getInput:event)
 					(Parse @inputLine event)
-					)
-					;; We were able to parse the input.  
-					;; Create a said event, and see
-					;; if someone wants it.
-					(event type:saidEvent)
-					(self said:event)
 				)
+				(event type:saidEvent)
+				(self said:event)
 			)
 		)
-	
-		;Finally, dispose of the event.
-		(event dispose:)
+		;;Finally, dispose of the event. - NO, it's an instance
+		;;(event dispose:)
 		(= lastEvent 0)
 	)
-
-
+	
+	
 	(method (getInput event &tmp oldPause ret)
 		;; Put up the input window and collect a line of input from the user.
-
+		
 		; if this is NOT a key event we zero out the inputLine
 		(if (!= (event type?) keyDown)
 			(= inputLine 0)
 		)
-
+		
 		;If this is not the echo character, replace the previous input
 		;line with the character which was passed.
 		(if (!= (event message?) echo)
 			(Format @inputLine "%c" (event message?))
 		)
-
+		
 		;Let the user edit the input line.
 		(= oldPause (Sound pause: blocks))
-		(= inputLineAddr @inputLine)
-		(= ret (GetInput @inputLine INPUTLEN prompt #at: x y))
+		(= ret (GetInput @inputLine inputLen prompt #at: x y))
 		(Sound pause: oldPause)
 		(return ret)
 	)
-
-
+	
+	
 	(method (canControl value)
 		;; Doing a (User canControl:FALSE) prevents the user from controlling
 		;; the alterEgo using the mouse, arrow keys, etc.  (User canControl:TRUE)
 		;; reinstates user control.
-
+		
 		(if argc
 			(= controls value)
 			(= prevDir 0)
 		)
 		(return controls)
 	)
-
-
+	
+	
 	(method (said event)
 		;; Pass a said event parsed from user input to the various elements of
 		;; the game.
-
-		(if TheMenuBar 
-			(TheMenuBar handleEvent: event)
+		
+		(if useSortedFeatures
+			(SortedAdd alterEgo sortedFeatures cast features)
+		else
+			(sortedFeatures add: cast features)
 		)
 		
-		;(sortedCpy sortedCast cast)
-		;(sortedCpy sortedFeatures features)
-
-		(sortedCast eachElementDo:#handleEvent: event)
-		(sortedFeatures eachElementDo:#handleEvent: event)
+		(if TheMenuBar 
+			(sortedFeatures addToFront: TheMenuBar)	;menu gets said first
+		)
+																	;then cast and features
+		(sortedFeatures 
+			addToEnd:	theGame,		;then room, regions, locales and game last
+			handleEvent:event,
+			release,
+		)
 		
-		(theGame handleEvent: event)
-
 		;If the event was not claimed by anyone, invoke pragmaFail: to let
 		;the user know that it was not understood.
 		(if (and (== (event type?) saidEvent) (not (event claimed?)))
@@ -208,3 +199,140 @@
 		)
 	)
 )
+
+
+(class Ego kindof Actor
+	;;; An Ego is an Actor which can be controlled by a User.
+	;;; "ego" is a global var that equals the base room instance of
+	;;; the single User currently supported in the system.
+	
+	
+	(properties
+		edgeHit 0			;edge of screen (or horizon) which the Ego has hit
+								;(NORTH, SOUTH, EAST, WEST)
+		signal ignrHrz		;Egos ignore horizon so they can move above it to
+								;set edgeHit
+	)
+	
+	(methods
+		get					;get an object into the Ego's inventory
+		put					;put an object in Ego's inventory somewhere else
+		has					;does Ego have the object in inventory?
+	)
+	
+	
+	(method (init)
+		(super init:)
+		
+		;Set cycling to walk.
+		(if (not cycler)
+			(self setCycle:Walk)
+		)
+	)
+	
+	
+	(method (doit)
+		(super doit:)
+		
+		;If the Ego has moved either above the horizon or past a screen edge,
+		;set the edgeHit to the appropriate edge.
+		(= edgeHit
+			(cond
+				((<= x westEdge)
+					WEST
+				)
+				((<= y (curRoom horizon?))
+					NORTH
+				)
+				((>= x eastEdge)
+					EAST
+				)
+				((>= y southEdge)
+					SOUTH
+				)
+				(else
+					0
+				)
+			)
+		)
+	)
+	
+	
+	(method (get what &tmp i)
+		;; Put a number of items into Ego's inventory.
+		
+		(for	((= i 0))
+			(< i argc)
+			((++ i))
+			
+			((inventory at:[what i]) moveTo:self)
+		)
+	)
+	
+	(method (put what recipient)
+		;; Put an item of Ego's inventory into the inventory of 'recipient'.
+		;; If recipient is not present, put item into limbo (-1 owner).
+		
+		(if (self has:what)
+			((inventory at:what) moveTo:(if (== argc 1) -1 else recipient))
+		)
+	)
+	
+	(method (has what &tmp theItem)
+		;; Return TRUE if Ego has 'what' in inventory.
+		
+		(= theItem (inventory at:what))
+		(return (and theItem (theItem ownedBy:self)))
+	)
+	
+	(method (handleEvent event theEvType 
+			&tmp 
+			;evType 
+			dir
+			)
+		
+		;(= evType (if (>= argc 2) theEvType else (event type)))
+		
+		(if (not (super handleEvent event))	;event not claimed
+			(switch (event type?)
+				(mouseDown
+					(if (and
+							(not (& (event modifiers) shiftDown))
+							(User controls)
+						)
+						(self setMotion:MoveTo (event x?) (event y?))
+						(User prevDir 0)
+						(event claimed:TRUE)
+					)
+				)
+				(direction
+					
+					(= dir (event message?))
+					
+					;Pressing the cursor key which started a motion a second
+					;time should stop ego.
+					(if (and
+							;(== evType keyDown)			;it's a key
+							(== dir (User prevDir))		;same dir as before
+							(IsObject mover?)				;ego is moving
+						)
+						(= dir dirStop)
+					)
+					
+					;In the case of a keyDown event, keep the previous
+					;direction, so we know what key stops ego.
+					(User prevDir
+						;(if (== evType keyDown) dir else dirStop)
+						dir
+					)
+					
+					;Set ego's direction.
+					(self setDirection:dir)
+					(event claimed:TRUE)
+				)
+			)
+		)
+		(return (event claimed))
+	)
+)
+

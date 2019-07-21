@@ -1,0 +1,101 @@
+
+      
+      
+      Subject: Recommended Procedures for SCI Game Programming Coordinators
+      
+      Date:    Monday January 30, 1989
+      
+      From:    Pablo Ghenis for SCI Development Group
+      
+      To:      Scott Murphy
+               Corey Cole
+               Chris Iden
+               Warren Schwader
+               All Game Programming Coordinators
+               
+      cc:      Ken Williams
+               Rick Cavin
+               Dale Carlson
+               All SCI programmers
+      
+      
+      As we approach the release date for some products currently under
+      development, we can expect a greater potential for conflict among 
+      the following equally worthy goals:
+      
+      - To fix system bugs or shortcomings and provide enhancements in  
+        order to facilitate further game development.
+        
+      - To isolate game developers from system instabilities while the 
+        above goal is being met by the system developers.
+        
+      
+      
+      The Programming Coordinators for each game can avoid disruptions 
+      in their projects by taking the following steps:
+      
+      1. Create an isolated system directory for each project and load 
+         a stable copy of the system into it. Also create a backup for
+         it and a directory for executables.
+         
+         Example:
+                     >md \games\ice\system
+                     >md \games\ice\system\old
+                     >md \games\ice\tools
+                     
+      2. Make sure that all "where" files are written in terms of s: 
+         instead of \games\sci\system. Everyone's autoexec.bat file 
+         should contain the line "set sinclude=s:"
+         
+      3. To save a version of tools such as the compilers and 
+         interpreter, just copy them to your project's tool directory.
+         
+      4. To give your project's tools precedence over the main version, 
+         type in a line like the following one, which should be 
+         appended to all project members' autoexec.bat files:
+         
+         pushpath g:\games\ice\tools
+      
+      
+      
+      
+      5. To freeze a version of the system for your project, type in a 
+         line like the following one:
+         
+         pushsys \games\sci\system \games\ice\system \games\ice\system\old
+         
+         This action might require the game to be rebuilt.
+         
+         Everyone working on the project should have s: mapped to the 
+         project's system directory. This can be done by editing the 
+         user login file using SYSCON on the net, or by appending to 
+         autoexec.bat a line like the following one:
+         
+         map s:=g:\games\ice\system
+         
+      6. If the above step is determined to be premature, it can be 
+         undone by typing a line like the following one:
+         
+         savesys \games\ice\system\old \games\ice\system
+      
+         This action might require the game to be rebuilt.
+         
+      7. Software updates should be performed and tested by the project 
+         coordinator at times that will not hurt the team's 
+         productivity, with enough time to rebuild, test and even revert 
+         and rebuild again if needed. 
+         
+      
+      While the SCI development team will carefully test all system 
+      changes to avoid introducing problems, its very flexibility makes 
+      it impossible to test all cases. It will be the responsibility of 
+      each project's coordinator to follow the above (or equivalent) 
+      procedures. 
+      
+      I have  provided the push*.bat and save*.bat files mentioned
+      above to  facilitate this task; they are available in
+      x:\public\tools. We  strongly recommend that all projects update
+      to the current system version as quickly as possible, since the
+      purpose of system  changes is to correct bugs and provide
+      significant enhancements.
+      

@@ -47,6 +47,9 @@
 	(method (init value &tmp dx dy)
 		;; Set up the Gauge Dialog.
 
+		; give ourself the class SysWindow as our window
+		(= window SysWindow)
+
 		(self update:value)
 
 		((= downI (DButton new:))

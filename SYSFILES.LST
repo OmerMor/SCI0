@@ -1,0 +1,17 @@
+remake.bat
+remake.lst
+selector.new
+selector
+classdef
+*.sc
+*.sh
+*.drv
+script.*
+text.*
+deriv.txt
+offsets.txt
+vocab.9??
+view.999
+cursor.*
+font.*
+

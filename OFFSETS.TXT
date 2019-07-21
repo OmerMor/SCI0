@@ -43,4 +43,7 @@ Sound		priority:
 Sound		loop:
 Sound		state:
 Sound		signal:
+Actor		xLast:
+Actor		yLast:
+Actor		z:
 

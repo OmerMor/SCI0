@@ -21,7 +21,9 @@
 (*people noun             *person noun )  ; chairpeople -> chairperson 
    
 (*ing    noun adj verb    *  verb )  ; playing -> play 
+(*ing    auxv             *  auxv )  ; doing -> do 
 (*ing    noun adj verb    *e verb )  ; living -> live 
+(*ing    auxv             *e auxv )  ; using -> use 
 (*nning  noun adj verb    *n verb )  ; running -> run 
 (*pping  noun adj verb    *p verb )  ; shopping -> shop 
 (*mming  noun adj verb    *m verb )  ; swimming -> swim 

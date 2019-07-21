@@ -85,5 +85,7 @@
 	button	81
 	icon		82
 	draw		83
+ 	delete	84
+	z	85
 
 )

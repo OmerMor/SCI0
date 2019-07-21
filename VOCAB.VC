@@ -1,0 +1,248 @@
+;**************************************************************************
+;
+;		Iceman new-style vocabulary:
+;		****************************
+;
+;		started 12/20/88 by Pablo Ghenis
+;		converted 1/3/89 to new vc format
+;
+;
+;**************************************************************************
+
+(#adj	#NUMBER 500
+	
+	;colors
+	;------
+	
+	(#noun	
+		white
+		black	
+		green	
+		gold	
+		silver	
+		orange
+	);#noun
+	
+	blue		
+	pink		
+	purple	
+	brown	
+	yellow	
+	golden	
+	red		
+	grey		
+	gray		
+	
+	;--------------
+	
+	;size
+	;----
+	(#synonyms	big	large	huge	(#noun	giant))
+	(#synonyms	small	little	tiny)
+	
+	;--------------
+	
+	(#synonyms	pretty	cute	gorgeous	sexy)
+	tan
+	(#synonyms	blonde	blond)
+	brunette
+	young
+	hot
+	cold
+	expensive
+	cheap
+	
+	left
+	right
+	
+);#adj
+
+;**************************************************************************
+
+(#verb	#NUMBER	1000
+	
+	;menu	commands
+	;-------------
+	quit
+	(#synonyms	exit leave)
+	restart
+	restore
+	save
+	help
+	tp		;teleport
+	db		;debug
+	p		;priority
+	c		;control
+	v		;visual
+	
+	;x-rated	words
+	;-------------
+	(#synonyms	fuck	screw)
+	shit
+	piss
+	
+	;normal	stuff
+	;------------
+	show
+	look
+	(#synonyms	get	take	grab)
+	put
+	sit
+	(#noun stand)
+	walk
+	wear
+	swim
+	open
+	lock
+	unlock
+	pay
+	ask
+	switch
+	turn
+	(#synonyms	talk	converse	(#noun	address))
+	(#noun	dress)
+	(#noun	wave)
+	read
+	(#synonyms	(#noun	call	phone telephone))
+	close
+	pick
+	(#noun dial)
+	(#noun dance)
+	buy
+	(#noun drink)
+	(#noun toss)
+	return
+	give
+	smell
+	deposit
+	(#synonyms	inspect search)
+	hit
+	flush
+	thank
+	kiss
+	come
+	knock
+	wake
+	push
+	(#noun love)
+	remove
+	(#synonyms	(#noun drop) release)
+	attach
+	move
+	press
+	climb
+	secure
+	(#noun surface)
+	eat
+	enter
+	
+);#verb
+
+
+;**************************************************************************
+(#noun	#NUMBER	2000
+	
+	woman
+	girl
+	man
+	beach
+	sand
+	island
+	(#synonyms	hotel motel)
+	(#synonyms	hut house building)
+	(#synonyms	tv	television)
+	radio
+	drawer
+	closet
+	door
+	window
+	wall
+	(#synonyms	floor	ground)
+	fish
+	money
+	bill
+	change
+	shirt
+	glasses
+	water
+	secret
+	bikini
+	room
+	chair
+	ticket
+	tahiti
+	counter
+	desk
+	reservation
+	(#synonyms	plane	airplane)
+	(#synonyms	boat	ship)
+	cache
+	(#synonyms submarine	sub)
+	mission
+	pocket
+	(#synonyms	jacket	coat	suit)
+	book
+	wallet
+	coins
+	message
+	picture
+	name
+	ball
+	volleyball
+	net
+	plant
+	flower
+	centerpiece
+	sign
+	clerk
+	(#synonyms paper newspaper)
+	glass
+	reflection
+	lady
+	nightstand
+	clothes
+	key
+	dinghy
+	carpet
+	couch
+	table
+	lamp
+	ceiling
+	(#synonyms id identification)
+	card
+	button
+	(#verb	guard)
+	(#synonyms beer primo)
+	elevator
+	envelope
+	bridge
+	entrance
+	walkway
+	explosive
+	cave
+	rock
+	(#verb   light)
+	ladder
+	hatch
+	lever
+	flare
+	diver
+	ego
+	bed
+	(#synonyms sea ocean bay)
+	(lake lagoon)
+	(#synonyms bush jungle forest wood)
+	(#synonyms tree palm)
+	sky
+	ice
+	iceman
+	(#verb disguise)
+	
+);#noun
+
+
+;**************************************************************************
+;  End of game vocab
+;  (keep this so that overflow errors get flagged)
+;
+(#NUMBER	3999)

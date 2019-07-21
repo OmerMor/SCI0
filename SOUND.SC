@@ -87,6 +87,7 @@
 		;; After this call, the sound state is SND_READY.
 
 		(= signal 0)
+		(= prevSignal 0)
 		(= state SND_NOTREADY)
 		(sounds add: self)
 		(DoSound InitSound self)

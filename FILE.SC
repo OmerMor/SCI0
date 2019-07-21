@@ -52,11 +52,14 @@
 					(FOpen name mode)
 				)
 				(else
-					-1
+					0
 				)
 			)
 		)
-		(return (if (== handle -1) NULL else self))
+		(if (== handle -1)
+			(= handle 0)
+		)
+		(return (if handle self else NULL))
 	)
 
 
@@ -70,8 +73,10 @@
 		)
 
 		;Multiple writes accepted.
-		(for ((= i 0)) (< i argc) ((++ i))
-			(FPuts handle [str i])
+		(if handle
+			(for ((= i 0)) (< i argc) ((++ i))
+				(FPuts handle [str i])
+			)
 		)
 	)
 
@@ -88,7 +93,7 @@
 			(self open:fRead)
 		)
 
-		(return (FGets str len handle))
+		(return (if handle (FGets str len handle) else 0))
 	)
 
 
@@ -113,3 +118,4 @@
 		(Format where "File: %s" name)
 	)
 )
+

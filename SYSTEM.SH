@@ -1,54 +1,5 @@
 ;SYSTEM - Header file
 
-;system globals from 0 to 99
-
-(global
-	ego					0		;pointer to ego
-	theGame				1		;ID of the Game instance
-	curRoom				2		;ID of current room
-	speed					3		;game speed (number of ticks between animations)
-	quit					4		;when TRUE, quit game
-	cast					5		;collection of actors
-	regions				6		;set of current regions
-	timers				7		;list of timers in the game
-	sounds				8		;set of sounds being played
-	inventory			9		;set of inventory items in game
-	addToPics			10		;list of views added to the picture
-	curRoomNum			11		;current room number
-	prevRoomNum			12		;previous room number
-	newRoomNum			13		;number of room to change to
-	debugOn				14		;generic debug flag -- set from debug menu
-	score					15		;the player's current score
-	possibleScore		16		;highest possible score
-	showStyle			17		;style of picture showing
-	aniInterval			18		;the # of ticks it took to do the last animation cycle
-	theCursor			19		;the number of the current cursor
-	normalCursor		20		;number of normal cursor form
-	waitCursor			21		;cursor number of "wait" cursor
-	userFont				22		;font to use for Print
-	smallFont			23		;small font for save/restore, etc.
-	lastEvent			24		;the last event (used by save/restore game)
-	modelessDialog		25		;the modeless Dialog known to User and Intrface
-	bigFont				26		;large font
-	volume				27		;sound volume for machines with control over it
-	version				28		;pointer to "x.yyy.zzz"
-	locales				29		;set of current locales
-	curSaveDir			30		;address of current save drive/directory string
-
-	aniThreshold		50
-	
-	perspective			51		;player's viewing angle:
-									;	 degrees away from vertical along y axis
-								
-	features				52		;locations that may respond to events
-	sortedFeatures		53		;above sorted by "visibility" to ego
-	sortedCast			54		;cast sorted by "visibility" to ego
-	deleteCastMember	55		;a member of the cast needs deleting
-
-	skipFactor			56		;default=1, set to 2 or 3 if we're really crawling
-
-	lastSysGlobal		99
-)
 
 
 
@@ -68,9 +19,47 @@
 (define	EXTRA			988)
 (define	GAUGE			987)
 (define	ORBIT			986)
+(define	AVOIDER		985)
+(define	SORTCOPY		984)
+(define	PATH			983)
+(define	SIGHT			982)
+(define	WINDOW		981)
+(define	TEXTRA		980)
+(define	MOUSER		979)
+(define	RFEATURE		978)
+(define	GROOPER		977)
+(define	CAT			976)
+(define	DEMO			975)
+(define	NAMEFIND		974)
+(define	TIMER			973)
+(define	CHASE			972)
+(define	FOLLOW		971)
+(define	WANDER		970)
+(define	REVERSE		969)
+(define	SMOOPER		968)
+(define	DCICON		967)
+(define	SORT			966)
+(define	COUNT			965)
+(define	DPATH			964)
+(define	RELDPATH		963)
+(define	QSCRIPT		962)
+(define	STOPWALK		961)
+(define	TIMEDCUE		960)
+(define	QSOUND		959)
+(define	LOADMANY		958)	;load/unload many modules
+(define	LASTLINK		957)	;follow a specified link to the bitter end
+(define	FORCOUNT		956)	;forward-loop a specified number of times
+(define	TRACK			955)	;motion to track an actor at an x/y offset.
+(define	GOTOSAID		954)	;turn to or approach "said" object.
+
 
 (define	INTRFACE		255)
 
+
+
+(define	INFINITY $7fff)	
+
+(define	NODIRECTION $7fff)		;Arbitrary value for an undefined heading
 
 
 ;Some selector aliases
@@ -88,16 +77,6 @@
 (define	ARROW_CURSOR	999)
 (define	SNAIL_CURSOR	998)
 (define	HAND_CURSOR		997)
-
-;Intrface procedures
-(extern
-	Print			INTRFACE	0
-	ShowView		INTRFACE	1
-	GetInput		INTRFACE	2
-	GetNumber	INTRFACE	3
-	Printf		INTRFACE 4
-)
-
 
 ;Text rendering
 (define	TPLAIN	0)
@@ -188,6 +167,19 @@
 	dirNW
 )
 
+;Standard loop order for actors
+(enum
+	loopE
+	loopW
+	loopS
+	loopN
+	
+	loopSE
+	loopSW
+	loopNE
+	loopNW
+)
+
 ; some keycode definitions
 (define	ESC			27)
 (define	SPACEBAR		32)
@@ -254,6 +246,7 @@
 (define	IRISIN		6)
 (define	IRISOUT		7)
 (define	DISSOLVE		8)
+(define	PLAIN			100)		; Draw quickly with no special effects
 ; adding the following constant to any of the styles
 ; will blacken the screen in the converse manner before showing
 (define	BLACKOUT		9)
@@ -324,6 +317,9 @@
 	RESTORING
 )
 
+;Marker for end of path array.
+(define	PATHEND	$8000)
+
 ; system font should not be screwed with
 (define	SYSFONT	0)
 (define	USERFONT	1)
@@ -350,6 +346,162 @@
 (define	SND_DELETE		4)
 
 
-; kernel external declarations
-(include	kernel.sh)
+;**************************************************
+;***
+;***				COLORS
+;***
+;**************************************************
+
+; ******* CONTROL colors
+;         --------------						;	color#
+;         											;	------
+(define	cBLACK				1		)			;	0
+(define	cBLUE					2		)			;	1
+(define	cGREEN				4		)			;	2
+(define	cCYAN					8		)			;	3
+(define	cRED					16		)			;	4
+(define	cMAGENTA				32		)			;	5
+(define	cBROWN				64		)			;	6
+(define	cLGREY				128	)			;	7
+(define	cGREY					256	)			;	8
+(define	cLBLUE				512	)			;	9
+(define	cLGREEN				1024	)			;	10
+(define	cLCYAN				2048	)			;	11
+(define	cLRED					4096	)			;	12
+(define	cLMAGENTA			8192	)			;	13
+(define	cYELLOW				16384	)			;	14
+(define	cWHITE				32768	)			;	15
+
+; ******** VISUAL colors
+(enum						;	color#
+							;	------
+	vBLACK				;	0
+	vBLUE					;	1
+	vGREEN				;	2
+	vCYAN					;	3
+	vRED					;	4
+	vMAGENTA				;	5
+	vBROWN				;	6
+	vLGREY				;	7
+	vGREY					;	8
+	vLBLUE				;	9
+	vLGREEN				;	10
+	vLCYAN				;	11
+	vLRED					;	12
+	vLMAGENTA			;	13
+	vYELLOW				;	14
+	vWHITE				;	15
+)
+
+; ******** PRIORITY colors
+(enum						;	color#
+							;	------
+	pBLACK				;	0
+	pBLUE					;	1
+	pGREEN				;	2
+	pCYAN					;	3
+	pRED					;	4
+	pMAGENTA				;	5
+	pBROWN				;	6
+	pLGREY				;	7
+	pGREY					;	8
+	pLBLUE				;	9
+	pLGREEN				;	10
+	pLCYAN				;	11
+	pLRED					;	12
+	pLMAGENTA			;	13
+	pYELLOW				;	14
+	pWHITE				;	15
+)
+
+;**************************************************
+;***
+;***		SYSTEM GLOBALS (0 TO 99)
+;***
+;**************************************************
+
+(global
+	ego					0							;pointer to ego
+	theGame				1							;ID of the Game instance
+	curRoom				2							;ID of current room
+	speed					3 = 6						;number of ticks between animations
+	quit					4							;when TRUE, quit game
+	cast					5							;collection of actors
+	regions				6							;set of current regions
+	timers				7							;list of timers in the game
+	sounds				8							;set of sounds being played
+	inventory			9							;set of inventory items in game
+	addToPics			10							;list of views added to the picture
+	curRoomNum			11							;current room number
+	prevRoomNum			12							;previous room number
+	newRoomNum			13							;number of room to change to
+	debugOn				14							;generic debug flag -- set from debug menu
+	score					15							;the player's current score
+	possibleScore		16							;highest possible score
+	showStyle			17 = IRISOUT			;style of picture showing
+	aniInterval			18							;# of ticks it took to do the last animation cycle
+	theCursor			19							;the number of the current cursor
+	normalCursor		20	= ARROW_CURSOR		;number of normal cursor form
+	waitCursor			21	= HAND_CURSOR		;cursor number of "wait" cursor
+	userFont				22	= USERFONT			;font to use for Print
+	smallFont			23	= 4 					;small font for save/restore, etc.
+	lastEvent			24							;the last event (used by save/restore game)
+	modelessDialog		25							;the modeless Dialog known to User and Intrface
+	bigFont				26 = USERFONT		 	;large font
+	volume				27	= 12					;sound volume
+	version				28	= {x.yyy.zzz}		;pointer to 'incver' version string
+	locales				29							;set of current locales
+	curSaveDir			30							;address of current save drive/directory string
+	aniThreshold		50 = 10
+	perspective			51							;player's viewing angle:
+														;	 degrees away from vertical along y axis
+	features				52							;locations that may respond to events
+	sortedFeatures		53							;above+cast sorted by "visibility" to ego
+	useSortedFeatures	54	= FALSE				;enable cast & feature sorting?
+	demoScripts			55			;add to curRoomNum to find room demo script
+	egoBlindSpot		56 = 0	;used by sortCopy to exclude 
+										;actors behind ego within angle 
+										;from straight behind. 
+										;Default zero is no blind spot
+	overlays				57 = -1
+	doMotionCue			58			;a motion cue has occurred - process it
+	systemWindow		59			; ID of standard system window
+	demoDialogTime		60	= 3	;how long Prints stay up in demo mode
+	currentPalette		61			;
+	modelessPort		62
+	
+	lastSysGlobal		99
+)
+
+
+
+
+
+
+(include	kernel.sh)	; kernel external declarations
+
+(include extra.sh)		;externs and defines needed to use extras
+(include sight.sh)		;externs needed to use CantBeSeen & Co.
+(include sortcopy.sh)	;extern needed to use SortedAdd
+(include intrface.sh)
+(include cat.sh)			;for mouse-tracking cat objects
+(include demo.sh)			;demo demon for self-running demos
+(include	namefind.sh)
+(include	sort.sh)
+(include	count.sh)
+(include	qscript.sh)
+(include	loadmany.sh)
+(include	lastlink.sh)
+(include	gotosaid.sh)	
+
+
+(extern
+	sign			SYSTEM	0
+	umod			SYSTEM	1
+	Min			SYSTEM	2
+	Max			SYSTEM	3
+	InRect		SYSTEM	4
+	OneOf			SYSTEM	5
+)
+
 

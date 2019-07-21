@@ -23,43 +23,60 @@ dw	NLS,     NLROOT,NLVP,    NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
 ;shoot
 dw	NLVP,    NLROOT,NLCVERB, NULL  ,NULL,    NULL,NULL,       NULL,NULL,NULL
 
-;put board down
+;put board down = put<down/board
 dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLNP,    NLMOD,NLPREP,    NULL,NULL,NULL
+
+;color the paper red
+dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLNP,    NLMOD,NLCADJ,    NULL,NULL,NULL
 
 ;hit board lightly
 dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLNP,    NLMOD,NLADV,     NULL,NULL,NULL
 
-;talk dwarf
+;talk to dwarf
+;put down board = put<down/board
 dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLNP,    NULL,NULL,       NULL,NULL,NULL
 
-;talk to dwarf: DO=dwarf
-dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLAP,    NULL,NULL,       NULL,NULL,NULL
+;give gold to dwarf =  'give<to/gold/dwarf'
+;put rock under bridge = 'put<under/rock/bridge'
+dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLNP,    NLMOD,NLPREP,  NLIOBJ,NLNP,NULL
 
-;give gold to dwarf:  DO=gold IO=dwarf
-dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLNP,    NLIOBJ,NLAP,     NULL,NULL,NULL
-
-;give dwarf the gold: IO=dwarf DO=gold (same as above)
+;give dwarf the gold: IO=dwarf DO=gold (same as above) 'give/gold/dwarf'
 dw	NLVP,    NLROOT,NLCVERB, NLIOBJ,NLNP,    NLDOBJ,NLNP,     NULL,NULL,NULL
 
-;burger
+;talk to dwarf about gold: talk<to/dwarf/gold<about
+dw	NLVP,    NLROOT,NLCVERB, NLDOBJ,NLNP,    NLIOBJ,NLAP,     NULL,NULL,NULL
+
+;talk about gold = 'talk//gold<about'
+dw	NLVP,    NLROOT,NLCVERB, NLIOBJ,NLAP,    NULL,NULL,       NULL,NULL,NULL
+
+;burger = '/burger'
+;john is SORRY
 dw	NLVP,    NLDOBJ,NLNP,    NULL  ,NULL,    NULL,NULL,       NULL,NULL,NULL
 
-;burger with fries
+;burger with fries = '/burger/fries
 dw	NLVP,    NLDOBJ,NLNP,    NLIOBJ,NLAP,    NULL,NULL,       NULL,NULL,NULL
 
+;*** this doesn't work, phrase MUST have a root or SCI bombs ***
 ; WITH FRIES or IN THE TRUNK
 ;dw	NLVP,    NLIOBJ,NLAP,    NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
 
-;???
-;dw	NLVP,    NLMOD ,NLCVERB, NLROOT,NLVP,    NULL,NULL,       NULL,NULL,NULL
+;TELL THE MAN TO give the gold to the dwarf = 'give<TELL<MAN<TO/gold/dwarf'
+dw	NLVP,    NLMOD ,NLCVERB, NLMOD,NLNP,     NLMOD ,NLPREP,   NLROOT,NLVP,NULL
 	
+;the tall clerk is the killer: 'is<(clerk<tall)/killer'
+;john is sorry = is<john/sorry
+dw NLVP,    NLMOD,NLNP,     NLROOT,NLVP,    NULL,NULL,       NULL,NULL,NULL
+
 ;;;
 ;;;******************* NP *******************
 ;;;
+
 ;the book
 dw	NLNP,    NLIGNR,NLART,   NLROOT,NLCNOUN, NULL,NULL,       NULL,NULL,NULL
+
 ;the red book
 dw	NLNP,    NLIGNR,NLART,   NLMOD ,NLCADJ,  NLROOT,NLCNOUN,  NULL,NULL,NULL
+
 ;red book
 dw	NLNP,    NLMOD ,NLCADJ,  NLROOT,NLCNOUN, NULL,NULL,       NULL,NULL,NULL
 
@@ -69,27 +86,36 @@ dw	NLNP,    NLROOT,NLCADJ,  NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
 ;book
 dw	NLNP,    NLROOT,NLCNOUN, NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
 
-;???
-;dw NLNP,    NLROOT,NLCNOUN, NLMOD,NLASS,    NLMOD,NLNP,      NULL,NULL,NULL
-;???
-;dw NLNP,    NLIGNR,NLASS,   NLROOT,NLNP,    NULL,NULL,       NULL,NULL,NULL
 	
 ;;;
 ;;;******************* AP *******************
 ;;;
 
-;put rock UNDER BRIDGE
-dw	NLAP,    NLMOD ,NLPREP,  NLROOT,NLNP,    NULL,NULL,       NULL,NULL,NULL
+;put rock UNDER BRIDGE - OBSOLETE CLAUSE
+;dw	NLAP,    NLMOD ,NLPREP,  NLROOT,NLNP,    NULL,NULL,       NULL,NULL,NULL
+
 ;give book TO DWARF
+;chop tree WITH AX
 dw	NLAP,    NLMOD ,NLASS,   NLROOT,NLNP,    NULL,NULL,       NULL,NULL,NULL
+
+;chop tree USING AX
+dw	NLAP,    NLMOD ,NLAUXV,  NLROOT,NLNP,    NULL,NULL,       NULL,NULL,NULL
+
 ;ask maid TO DO THE BED
 dw	NLAP,    NLMOD ,NLASS,   NLROOT,NLAUXV,  NLMOD ,NLNP,     NULL,NULL,NULL
+
 ;ask child TO BE QUIET
 dw	NLAP,    NLMOD ,NLASS,   NLROOT,NLAUXV,  NLMOD ,NLADJ,    NULL,NULL,NULL
+
 ;"sleep" in "do fairies sleep" spec: 'do/fairies/sleep'
 dw	NLAP,    NLROOT,NLCVERB, NULL  ,NULL,    NULL,NULL,       NULL,NULL,NULL
+
 ;say the body IS IN THE TRUNK
 dw	NLAP,    NLMOD,NLCVERB,  NLROOT,NLAP,    NULL,NULL,       NULL,NULL,NULL
+
+;ask ABOUT SYMBOL OF MITHRA = ask//symbol<about<symbol<of
+;("of" is a positional PREPosition)
+dw	NLAP,    NLMOD ,NLASS,   NLROOT,NLNP,    NLMOD,NLPREP,    NLMOD,NLNP,NULL
 
 ;???
 ;dw	NLAP,    NLROOT,NLNP,    NULL  ,NULL,    NULL,NULL,       NULL,NULL,NULL
@@ -100,9 +126,12 @@ dw	NLAP,    NLMOD,NLCVERB,  NLROOT,NLAP,    NULL,NULL,       NULL,NULL,NULL
 ;;;
 
 ;bow and arrows
-dw	NLCNOUN, NLROOT,NLNOUN,  NLIGNR,NLCONJ,  NLROOT,NLCNOUN,  NULL,NULL,NULL
+;door of the crypt
+dw	NLCNOUN, NLROOT,NLNOUN,  NLIGNR,NLCONJ,  NLROOT,NLNP,     NULL,NULL,NULL
+
 ;prison guard jacket
 dw	NLCNOUN, NLMOD ,NLNOUN,  NLROOT,NLCNOUN, NULL,NULL,       NULL,NULL,NULL
+
 ;jacket
 dw	NLCNOUN, NLROOT,NLNOUN,  NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
 
@@ -113,8 +142,18 @@ dw	NLCNOUN, NLROOT,NLNOUN,  NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
 ;go swim
 dw	NLCVERB, NLMOD ,NLAUXV,  NLROOT,NLCVERB, NULL,NULL,       NULL,NULL,NULL
 
-;did you see
+;did you see?
+;do zombies sleep?
 dw	NLCVERB, NLMOD ,NLAUXV,  NLMOD ,NLNOUN,  NLROOT,NLCVERB,  NULL,NULL,NULL
+
+;john IS sorry
+dw	NLCVERB, NLROOT,NLAUXV,  NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
+
+;go to swim
+dw	NLCVERB, NLMOD,NLAUXV,   NLMOD,NLPREP,   NLROOT,NLVERB,   NULL,NULL,NULL
+
+;go down to swim
+dw	NLCVERB, NLMOD,NLAUXV,  NLMOD,NLPREP,  NLMOD,NLPREP,  NLROOT,NLVERB,NULL
 
 ;put
 dw	NLCVERB, NLROOT,NLVERB,  NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
@@ -124,6 +163,9 @@ dw	NLCVERB, NLROOT,NLVERB,  NLMOD ,NLPREP,  NULL,NULL,       NULL,NULL,NULL
 
 ;lie down on
 dw	NLCVERB, NLROOT,NLVERB,  NLMOD ,NLPREP,  NLMOD ,NLPREP,   NULL,NULL,NULL
+
+;COLOR BRIGHT RED the paper
+dw	NLCVERB, NLROOT,NLVERB,  NLMOD ,NLCADJ,  NULL,NULL,       NULL,NULL,NULL
 
 ;swim quickly
 dw	NLCVERB, NLROOT,NLVERB,  NLMOD ,NLADV,   NULL,NULL,       NULL,NULL,NULL
@@ -141,8 +183,11 @@ dw	NLCVERB, NLROOT,NLADV,   NULL,NULL,      NULL,NULL,       NULL,NULL,NULL
 ;"what time is" in "what time is it" spec: 'is<what<time'
 dw	NLCVERB, NLMOD ,NLADV,   NLMOD ,NLNOUN,  NLROOT,NLCVERB,  NULL,NULL,NULL
 
-;do fairies sleep
-;dw	NLCVERB, NLMOD ,NLVERB,  NLMOD ,NLNOUN,  NLROOT,NLCVERB,  NULL,NULL,NULL
+;look and feel
+dw NLCVERB, NLROOT,NLVERB,  NLIGNR,NLCONJ,  NLROOT,NLVERB,   NULL,NULL,NULL
+
+;look, listen and feel
+dw NLCVERB,  NLROOT,NLVERB,  NLROOT,NLVERB,  NLIGNR,NLCONJ,   NLROOT,NLVERB,NULL
 
 ;;;
 ;;;******************* CADJ *******************

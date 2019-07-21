@@ -1,0 +1,10 @@
+copy:
+#define
+enum
+properties
+methods
+functions:
+Print
+GetInput
+SetMenu
+Display
